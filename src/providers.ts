@@ -52,12 +52,15 @@ export const askGemini: AskModel = async (messages) => {
     generationConfig: { responseMimeType: "application/json", temperature: 0 },
   };
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${config.geminiModel}:generateContent`;
-  const res = (await withRetry(() =>
-    fetchJson(url, {
+  // The free tier allows only a few requests per minute, so allow more, longer retries.
+  const res = (await withRetry(
+    () =>
+      fetchJson(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": config.geminiApiKey },
-      body: JSON.stringify(body),
-    }),
+        body: JSON.stringify(body),
+      }),
+    { attempts: 6, baseMs: 2000 },
   )) as {
     candidates?: { content?: { parts?: { text?: string }[] }; finishReason?: string }[];
     usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number };

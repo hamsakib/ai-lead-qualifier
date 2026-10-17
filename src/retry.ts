@@ -38,8 +38,16 @@ export async function fetchJson(url: string, init: RequestInit): Promise<unknown
   const res = await fetch(url, init);
   const text = await res.text();
   if (!res.ok) {
-    const retryAfter = Number(res.headers.get("retry-after"));
-    throw new HttpError(res.status, text, Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : undefined);
+    throw new HttpError(res.status, text, retryAfterMs(res, text));
   }
   return text ? JSON.parse(text) : null;
+}
+
+// How long the server asked us to wait: the standard Retry-After header (seconds), or
+// Google's "retryDelay": "12.5s" inside the error body, which Gemini sends instead.
+function retryAfterMs(res: Response, body: string): number | undefined {
+  const header = Number(res.headers.get("retry-after"));
+  if (Number.isFinite(header) && header > 0) return header * 1000;
+  const match = body.match(/"retryDelay":\s*"([\d.]+)s"/);
+  return match ? Math.ceil(Number(match[1]) * 1000) + 250 : undefined;
 }

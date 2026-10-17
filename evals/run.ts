@@ -22,12 +22,20 @@ const PRICES: Record<string, [number, number]> = {
 
 const cases: Case[] = JSON.parse(readFileSync(new URL("./leads.json", import.meta.url), "utf8"));
 
-async function runAll(limit = 3) {
+// Paid APIs can take a few leads at once. Free tiers allow only a handful of requests per
+// minute (Gemini: 5), so run one at a time with a gap. Override with EVAL_CONCURRENCY / EVAL_GAP_MS.
+const FREE = config.provider !== "anthropic";
+const CONCURRENCY = Number(process.env.EVAL_CONCURRENCY || (FREE ? 1 : 3));
+const GAP_MS = Number(process.env.EVAL_GAP_MS || (config.provider === "gemini" ? 13_000 : 0));
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function runAll(limit = CONCURRENCY) {
   const results: { c: Case; r?: QualifyResult; error?: string }[] = [];
   let next = 0;
   const worker = async () => {
     while (next < cases.length) {
       const c = cases[next++];
+      if (GAP_MS && next > 1) await sleep(GAP_MS);
       try {
         results.push({ c, r: await qualifyLead(c.lead) });
       } catch (err) {
