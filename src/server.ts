@@ -16,6 +16,8 @@ export function secretMatches(given: string | undefined, expected: string): bool
 export function createApp(store: LeadStore, process = processLead) {
   const app = express();
   app.use(express.json({ limit: "64kb" }));
+  // A small dashboard to view leads and send test ones. The data itself still needs the secret.
+  app.use(express.static("public"));
 
   app.get("/health", (_req, res) => {
     res.json({ ok: true, model: modelLabel(), hubspot: Boolean(config.hubspotToken), slack: Boolean(config.slackWebhookUrl) });
