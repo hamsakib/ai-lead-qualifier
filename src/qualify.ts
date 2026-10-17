@@ -1,7 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
-import { config } from "./config.ts";
+import { config, modelLabel } from "./config.ts";
 import { leadMessage, SYSTEM_PROMPT } from "./prompt.ts";
+import { askGemini, askOllama } from "./providers.ts";
 import { checkQualification, Qualification, type LeadInput } from "./schemas.ts";
 
 // What one model call returns, reduced to the fields this service uses.
@@ -52,17 +53,24 @@ export const askClaude: AskModel = async (messages) => {
   };
 };
 
+// Which model answers, from PROVIDER in .env.
+export function selectedModel(): AskModel {
+  if (config.provider === "gemini") return askGemini;
+  if (config.provider === "ollama") return askOllama;
+  return askClaude;
+}
+
 // Scores one lead. Never throws for a bad model answer: it retries once with the
 // problems spelled out, and if that also fails the lead is marked "needs_review"
 // for a person. Network/API errors that survive the SDK's retries do throw, so the
 // caller can keep the lead and try again later.
-export async function qualifyLead(lead: LeadInput, ask: AskModel = askClaude): Promise<QualifyResult> {
+export async function qualifyLead(lead: LeadInput, ask: AskModel = selectedModel()): Promise<QualifyResult> {
   const started = Date.now();
   const messages: Anthropic.Beta.BetaMessageParam[] = [{ role: "user", content: leadMessage(lead) }];
   let problems: string[] = [];
   let inputTokens = 0;
   let outputTokens = 0;
-  let model = config.model;
+  let model = modelLabel();
   let attempts = 0;
 
   for (let attempt = 1; attempt <= 2; attempt++) {

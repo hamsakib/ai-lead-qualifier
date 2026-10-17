@@ -1,6 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import express, { type Request, type Response } from "express";
-import { config } from "./config.ts";
+import { config, modelLabel } from "./config.ts";
 import { processLead, receiveLead } from "./pipeline.ts";
 import { LeadInput } from "./schemas.ts";
 import { LeadStore } from "./store.ts";
@@ -18,7 +18,7 @@ export function createApp(store: LeadStore, process = processLead) {
   app.use(express.json({ limit: "64kb" }));
 
   app.get("/health", (_req, res) => {
-    res.json({ ok: true, model: config.model, hubspot: Boolean(config.hubspotToken), slack: Boolean(config.slackWebhookUrl) });
+    res.json({ ok: true, model: modelLabel(), hubspot: Boolean(config.hubspotToken), slack: Boolean(config.slackWebhookUrl) });
   });
 
   app.post("/webhook/lead", (req: Request, res: Response) => {

@@ -1,6 +1,6 @@
 # AI Lead Qualifier
 
-A small webhook service that scores inbound sales leads with Claude, upserts them into HubSpot with the AI's reasoning as a note, and alerts Slack when a lead is hot.
+A small webhook service that scores inbound sales leads with an LLM (Claude by default; Gemini's free tier or a local Ollama model also work), upserts them into HubSpot with the AI's reasoning as a note, and alerts Slack when a lead is hot.
 
 Built for the most common small-business automation request: *"leads come in from our website, nobody follows up fast enough, and our CRM is a mess."*
 
@@ -32,6 +32,7 @@ Design choices:
 - **Idempotent.** Same email + same message gives the same key, so a double-click or a redelivered webhook is processed once.
 - **Structured outputs + code validation.** Claude returns JSON in a fixed schema (enforced by the API), then `checkQualification` enforces rules a schema can't express (whole-number score 1–10, spam must score ≤ 2, reply length). A bad answer is retried once with the exact problems listed; a second bad answer goes to a person, never to the CRM.
 - **Prompt-injection resistant.** Lead text is passed as data inside `<lead>` tags, and the prompt tells the model never to follow instructions found there. Injection attempts are flagged (`injection_attempt: true`) and forced to score 1, and the business-rule check rejects any injection that still scores high.
+- **Model-agnostic.** Every model sits behind one small `AskModel` function, so switching from Claude to Gemini or a local model is one line in `.env`. Claude enforces the JSON schema on the API side; for the others the schema goes in the prompt, and the same Zod check and retry keep bad answers out of the CRM. Run `npm run eval` on each to compare accuracy and cost.
 - **Retries only what can succeed.** 429 and 5xx responses and network errors are retried with exponential backoff and jitter (and `Retry-After` when sent). 4xx errors fail at once so config problems aren't hidden.
 - **One failing step doesn't block the others.** If HubSpot is down, the hot-lead Slack alert still goes out, and the CRM failure is recorded on the lead.
 
@@ -39,9 +40,9 @@ Design choices:
 
 ```bash
 npm install
-cp .env.example .env      # then fill in ANTHROPIC_API_KEY and WEBHOOK_SECRET
-npm test                  # 13 tests, no API key needed (uses a fake model)
-npm run eval              # scores 15 test leads with the real model (costs a few cents)
+cp .env.example .env      # then pick a PROVIDER and fill in its key, plus WEBHOOK_SECRET
+npm test                  # 18 tests, no API key needed (fake model and stubbed HTTP)
+npm run eval              # scores 15 test leads with the real model
 npm run dev               # starts the server on http://localhost:3000
 ```
 
@@ -58,7 +59,10 @@ Then `GET /leads` (same header) shows the stored result.
 
 | Variable | Required | What it does |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | yes | Claude API key |
+| `PROVIDER` | no | `anthropic` (default, paid), `gemini` (free tier, key from aistudio.google.com) or `ollama` (free, local model) |
+| `ANTHROPIC_API_KEY` | for `anthropic` | Claude API key |
+| `GEMINI_API_KEY` / `GEMINI_MODEL` | for `gemini` | Free-tier key; model defaults to `gemini-2.5-flash` |
+| `OLLAMA_MODEL` / `OLLAMA_URL` | for `ollama` | Local model, default `qwen2.5:3b` at `http://localhost:11434` |
 | `WEBHOOK_SECRET` | yes | Shared secret the form sends in `x-webhook-secret` |
 | `MODEL` | no | Default `claude-opus-5-5`; `claude-haiku-5-5` is the low-cost option for high volume (run `npm run eval` to compare) |
 | `HUBSPOT_TOKEN` | no | HubSpot private-app token (scopes: `crm.objects.contacts.read`, `crm.objects.contacts.write`). Without it, CRM sync is skipped |

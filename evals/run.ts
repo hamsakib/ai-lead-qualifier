@@ -3,7 +3,7 @@
 //   npm run eval
 // It calls the API once or twice per lead, so it costs a few cents.
 import { readFileSync, writeFileSync } from "node:fs";
-import { config } from "../src/config.ts";
+import { config, modelLabel } from "../src/config.ts";
 import { qualifyLead, type QualifyResult } from "../src/qualify.ts";
 import type { LeadInput } from "../src/schemas.ts";
 
@@ -59,10 +59,11 @@ for (const { c, r, error } of rows) {
   );
 }
 
-const [pin, pout] = PRICES[config.model] ?? [0, 0];
+// Gemini free tier and local Ollama cost nothing.
+const [pin, pout] = config.provider === "anthropic" ? (PRICES[config.model] ?? [0, 0]) : [0, 0];
 const cost = (inTok * pin + outTok * pout) / 1e6;
 const summary = [
-  `Model: ${config.model} · Run: ${new Date().toISOString()}`,
+  `Model: ${modelLabel()} · Run: ${new Date().toISOString()}`,
   `Passed: ${passed}/${rows.length} (${Math.round((passed / rows.length) * 100)}%)`,
   `Tokens: ${inTok} in / ${outTok} out · Cost: $${cost.toFixed(4)} total, $${(cost / rows.length).toFixed(5)} per lead`,
 ];
