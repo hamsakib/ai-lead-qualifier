@@ -61,7 +61,7 @@ Then `GET /leads` (same header) shows the stored result.
 |---|---|---|
 | `PROVIDER` | no | `anthropic` (default, paid), `gemini` (free tier, key from aistudio.google.com) or `ollama` (free, local model) |
 | `ANTHROPIC_API_KEY` | for `anthropic` | Claude API key |
-| `GEMINI_API_KEY` / `GEMINI_MODEL` | for `gemini` | Free-tier key; model defaults to `gemini-3.8-flash` |
+| `GEMINI_API_KEY` / `GEMINI_MODEL` | for `gemini` | Free-tier key; model defaults to `gemini-3.5-flash-lite` |
 | `OLLAMA_MODEL` / `OLLAMA_URL` | for `ollama` | Local model, default `qwen2.5:3b` at `http://localhost:11434` |
 | `WEBHOOK_SECRET` | yes | Shared secret the form sends in `x-webhook-secret` |
 | `MODEL` | no | Default `claude-opus-5-5`; `claude-haiku-5-5` is the low-cost option for high volume (run `npm run eval` to compare) |

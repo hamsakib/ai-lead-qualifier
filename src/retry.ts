@@ -19,7 +19,7 @@ function isRetryable(err: unknown): boolean {
 
 export async function withRetry<T>(
   fn: () => Promise<T>,
-  { attempts = 4, baseMs = 500, sleep = (ms: number) => new Promise((r) => setTimeout(r, ms)) } = {},
+  { attempts = 4, baseMs = 500, maxWaitMs = 60_000, sleep = (ms: number) => new Promise((r) => setTimeout(r, ms)) } = {},
 ): Promise<T> {
   for (let i = 1; ; i++) {
     try {
@@ -27,6 +27,9 @@ export async function withRetry<T>(
     } catch (err) {
       if (i >= attempts || !isRetryable(err)) throw err;
       const retryAfter = err instanceof HttpError ? err.retryAfterMs : undefined;
+      // A server asking for a long wait (a daily quota resets in hours) means "not today":
+      // give up now so the caller can keep the lead and retry later, instead of hanging.
+      if (retryAfter !== undefined && retryAfter > maxWaitMs) throw err;
       // Exponential backoff with jitter: ~0.5s, 1s, 2s ... so many clients don't retry in lockstep.
       const backoff = baseMs * 2 ** (i - 1) * (0.5 + Math.random());
       await sleep(retryAfter ?? backoff);

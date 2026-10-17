@@ -177,3 +177,14 @@ test("webhook secret check", () => {
   assert.equal(secretMatches(undefined, "s3cret"), false);
   assert.equal(secretMatches("anything", ""), false);
 });
+
+test("retry: gives up at once when the server asks for a very long wait (daily quota)", async () => {
+  let n = 0;
+  await assert.rejects(
+    withRetry(async () => {
+      n++;
+      throw new HttpError(429, "quota", 48_944_000);
+    }, { sleep: async () => assert.fail("must not sleep 13 hours") }),
+  );
+  assert.equal(n, 1);
+});

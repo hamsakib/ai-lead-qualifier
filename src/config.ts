@@ -10,7 +10,7 @@ export const config = {
   provider: (process.env.PROVIDER || "anthropic") as "anthropic" | "gemini" | "ollama",
   model: process.env.MODEL || "claude-opus-5-5",
   geminiApiKey: process.env.GEMINI_API_KEY || "",
-  geminiModel: process.env.GEMINI_MODEL || "gemini-3.8-flash",
+  geminiModel: process.env.GEMINI_MODEL || "gemini-3.5-flash-lite",
   ollamaModel: process.env.OLLAMA_MODEL || "qwen2.5:3b",
   ollamaUrl: process.env.OLLAMA_URL || "http://localhost:11434",
   webhookSecret: process.env.WEBHOOK_SECRET || "",
