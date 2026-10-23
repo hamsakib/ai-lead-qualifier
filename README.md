@@ -4,6 +4,30 @@ A small webhook service that scores inbound sales leads with an LLM (Claude by d
 
 Built for the most common small-business automation request: *"leads come in from our website, nobody follows up fast enough, and our CRM is a mess."*
 
+## Main features
+
+- Scores every lead with an LLM into structured JSON: score, intent, urgency, budget, summary, reason and a suggested reply
+- Validates incoming leads with Zod and normalises email and phone
+- Idempotent saves, so a repeated webhook never creates duplicate leads
+- Business-rule check with one automatic retry, then a "needs review" state for a person
+- Upserts the contact in HubSpot with the AI's reasoning as a note
+- Sends a Slack alert when a lead scores 7 or higher
+
+## Tech stack
+
+Node.js · TypeScript · Express · Zod · Claude API (Anthropic SDK), with Gemini or Ollama as alternatives · HubSpot API · Slack webhooks
+
+## Dependencies
+
+- Runtime: `express`, `zod`, `@anthropic-ai/sdk`
+- Development: `typescript`, `tsx`, `@types/express`, `@types/node`
+
+## Links
+
+- Repository: https://github.com/hamsakib/ai-lead-qualifier
+- Author portfolio: https://hasan-al-mahmud-dev.vercel.app
+- This is a back-end webhook service with no web UI; the Setup section below shows how to run it and send a test lead.
+
 ## How it works
 
 ```
